@@ -66,6 +66,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    allowEdit: {
+      type: Boolean,
+      default: false,
+    },
     render: {
       type: Function,
       default: render,
@@ -110,7 +114,7 @@ export default {
       }
     },
     editNode(node) {
-      if (this.readonly) {
+      if (this.readonly && !this.allowEdit) {
         return;
       }
       this.$emit("editnode", node);
@@ -154,7 +158,12 @@ export default {
               name: "Pass",
             };
             this.internalConnections.push(conn);
-            this.$emit("connect", conn, this.internalNodes, this.internalConnections);
+            this.$emit(
+              "connect",
+              conn,
+              this.internalNodes,
+              this.internalConnections
+            );
           }
         }
         this.connectingInfo.source = null;
@@ -401,105 +410,113 @@ export default {
       node.render = that.render;
       node.render(g, node, isSelected);
 
-      let drag = d3
-        .drag()
-        .on("start", function () {
-          // handle mousedown
-          let isNotCurrentNode =
-            that.currentNodes.filter((item) => item === node).length === 0;
-          if (isNotCurrentNode) {
-            that.currentConnections.splice(0, that.currentConnections.length);
-            that.currentNodes.splice(0, that.currentNodes.length);
-            that.currentNodes.push(node);
-          }
-
-          if (that.clickedOnce) {
-            that.currentNodes.splice(0, that.currentNodes.length);
-            that.editNode(node);
-          } else {
-            let timer = setTimeout(function () {
-              that.clickedOnce = false;
-              clearTimeout(timer);
-            }, 300);
-            that.clickedOnce = true;
-          }
-        })
-        .on("drag", async function () {
-          if (that.readonly) {
-            return;
-          }
-
-          let zoom = parseFloat(document.getElementById("svg").style.zoom || 1);
-          for (let currentNode of that.currentNodes) {
-            let x = d3.event.dx / zoom;
-            if (currentNode.x + x < 0) {
-              x = -currentNode.x;
+      if (!that.allowEdit) {
+        let drag = d3
+          .drag()
+          .on("start", function () {
+            // handle mousedown
+            let isNotCurrentNode =
+              that.currentNodes.filter((item) => item === node).length === 0;
+            if (isNotCurrentNode) {
+              that.currentConnections.splice(0, that.currentConnections.length);
+              that.currentNodes.splice(0, that.currentNodes.length);
+              that.currentNodes.push(node);
             }
-            currentNode.x += x;
-            let y = d3.event.dy / zoom;
-            if (currentNode.y + y < 0) {
-              y = -currentNode.y;
-            }
-            currentNode.y += y;
-          }
 
-          d3.selectAll("#svg > g.guideline").remove();
-          let edge = that.getCurrentNodesEdge();
-          let expectX = Math.round(Math.round(edge.start.x) / 10) * 10;
-          let expectY = Math.round(Math.round(edge.start.y) / 10) * 10;
-          that.internalNodes.forEach((item) => {
-            if (
-              that.currentNodes.filter((currentNode) => currentNode === item)
-                .length === 0
-            ) {
-              if (item.x === expectX) {
-                // vertical guideline
-                if (item.y < expectY) {
-                  that.guideLineTo(
-                    item.x,
-                    item.y + item.height,
-                    expectX,
-                    expectY
-                  );
-                } else {
-                  that.guideLineTo(
-                    expectX,
-                    expectY + item.height,
-                    item.x,
-                    item.y
-                  );
+            if (that.clickedOnce) {
+              that.currentNodes.splice(0, that.currentNodes.length);
+              that.editNode(node);
+            } else {
+              let timer = setTimeout(function () {
+                that.clickedOnce = false;
+                clearTimeout(timer);
+              }, 300);
+              that.clickedOnce = true;
+            }
+          })
+          .on("drag", async function () {
+            if (that.readonly) {
+              return;
+            }
+
+            let zoom = parseFloat(
+              document.getElementById("svg").style.zoom || 1
+            );
+            for (let currentNode of that.currentNodes) {
+              let x = d3.event.dx / zoom;
+              if (currentNode.x + x < 0) {
+                x = -currentNode.x;
+              }
+              currentNode.x += x;
+              let y = d3.event.dy / zoom;
+              if (currentNode.y + y < 0) {
+                y = -currentNode.y;
+              }
+              currentNode.y += y;
+            }
+
+            d3.selectAll("#svg > g.guideline").remove();
+            let edge = that.getCurrentNodesEdge();
+            let expectX = Math.round(Math.round(edge.start.x) / 10) * 10;
+            let expectY = Math.round(Math.round(edge.start.y) / 10) * 10;
+            that.internalNodes.forEach((item) => {
+              if (
+                that.currentNodes.filter((currentNode) => currentNode === item)
+                  .length === 0
+              ) {
+                if (item.x === expectX) {
+                  // vertical guideline
+                  if (item.y < expectY) {
+                    that.guideLineTo(
+                      item.x,
+                      item.y + item.height,
+                      expectX,
+                      expectY
+                    );
+                  } else {
+                    that.guideLineTo(
+                      expectX,
+                      expectY + item.height,
+                      item.x,
+                      item.y
+                    );
+                  }
+                }
+                if (item.y === expectY) {
+                  // horizontal guideline
+                  if (item.x < expectX) {
+                    that.guideLineTo(
+                      item.x + item.width,
+                      item.y,
+                      expectX,
+                      expectY
+                    );
+                  } else {
+                    that.guideLineTo(
+                      expectX + item.width,
+                      expectY,
+                      item.x,
+                      item.y
+                    );
+                  }
                 }
               }
-              if (item.y === expectY) {
-                // horizontal guideline
-                if (item.x < expectX) {
-                  that.guideLineTo(
-                    item.x + item.width,
-                    item.y,
-                    expectX,
-                    expectY
-                  );
-                } else {
-                  that.guideLineTo(
-                    expectX + item.width,
-                    expectY,
-                    item.x,
-                    item.y
-                  );
-                }
-              }
+            });
+          })
+          .on("end", function () {
+            d3.selectAll("#svg > g.guideline").remove();
+            for (let currentNode of that.currentNodes) {
+              currentNode.x = Math.round(Math.round(currentNode.x) / 10) * 10;
+              currentNode.y = Math.round(Math.round(currentNode.y) / 10) * 10;
             }
           });
-        })
-        .on("end", function () {
-          d3.selectAll("#svg > g.guideline").remove();
-          for (let currentNode of that.currentNodes) {
-            currentNode.x = Math.round(Math.round(currentNode.x) / 10) * 10;
-            currentNode.y = Math.round(Math.round(currentNode.y) / 10) * 10;
-          }
-        });
-      g.call(drag);
+        g.call(drag);
+      }
       g.on("mousedown", function () {
+        if (that.readonly && that.allowEdit) {
+          that.editNode(node);
+          return;
+        }
         // handle ctrl+mousedown
         if (!d3.event.ctrlKey) {
           return;
@@ -552,7 +569,12 @@ export default {
                   name: "Pass",
                 };
                 that.internalConnections.push(conn);
-                that.$emit("connect", conn, that.internalNodes, that.internalConnections);
+                that.$emit(
+                  "connect",
+                  conn,
+                  that.internalNodes,
+                  that.internalConnections
+                );
               }
               that.connectingInfo.source = null;
               that.connectingInfo.sourcePosition = null;
@@ -624,7 +646,12 @@ export default {
     removeConnection(conn) {
       let index = this.internalConnections.indexOf(conn);
       this.internalConnections.splice(index, 1);
-      this.$emit("disconnect", conn, this.internalNodes, this.internalConnections);
+      this.$emit(
+        "disconnect",
+        conn,
+        this.internalNodes,
+        this.internalConnections
+      );
     },
     moveCurrentNode(x, y) {
       if (this.currentNodes.length > 0 && !this.readonly) {
@@ -780,7 +807,7 @@ export default {
       immediate: true,
       deep: true,
       handler() {
-        this.$emit('select', this.currentNodes);
+        this.$emit("select", this.currentNodes);
         this.renderNodes();
       },
     },
@@ -788,7 +815,7 @@ export default {
       immediate: true,
       deep: true,
       handler() {
-        this.$emit('selectconnection', this.currentConnections);
+        this.$emit("selectconnection", this.currentConnections);
         this.renderConnections();
       },
     },
