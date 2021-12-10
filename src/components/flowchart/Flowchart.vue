@@ -70,6 +70,10 @@ export default {
       type: Boolean,
       default: false,
     },
+    allowSelection: {
+      type: Boolean,
+      default: true,
+    },
     render: {
       type: Function,
       default: render,
@@ -227,7 +231,7 @@ export default {
     renderSelection() {
       let that = this;
       // render selection rectangle
-      if (that.selectionInfo) {
+      if (that.selectionInfo && that.allowSelection) {
         that.currentNodes.splice(0, that.currentNodes.length);
         that.currentConnections.splice(0, that.currentConnections.length);
         let edge = getEdgeOfPoints([

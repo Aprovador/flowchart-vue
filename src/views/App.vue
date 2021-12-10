@@ -33,6 +33,7 @@
       :height="500"
       :readonly="true"
       :allowEdit="true"
+      :allowSelection="false"
       @dblclick="handleDblClick"
       @editconnection="handleEditConnection"
       @save="handleChartSave"
