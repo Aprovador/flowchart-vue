@@ -40,7 +40,6 @@
       @select="handleSelect"
       @selectconnection="handleSelectConnection"
       ref="chart"
-      :render="render"
     >
     </flowchart>
     <node-dialog
@@ -73,8 +72,24 @@ export default {
   data: function () {
     return {
       nodes: [
-        { id: 1, x: 50, y: 220, name: "Start", type: "start" },
-        { id: 2, x: 630, y: 220, name: "End", type: "end" },
+        {
+          id: 1,
+          x: 50,
+          y: 220,
+          width: 80,
+          height: 80,
+          name: "Inicio",
+          type: "start",
+        },
+        {
+          id: 2,
+          x: 630,
+          y: 220,
+          width: 80,
+          height: 80,
+          name: "Fim",
+          type: "end",
+        },
         {
           id: 3,
           x: 340,
